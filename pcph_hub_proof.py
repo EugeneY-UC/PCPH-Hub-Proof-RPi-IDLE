@@ -1,20 +1,21 @@
 # -*- coding: utf-8 -*-
 #!/usr/bin/python3
 
-import time
 import tkinter as tk
 from tkinter import font as tkfont
+from pathlib import Path
+import csv
+import time
+
 
 PIN_LENGTH = 4
 PASSWORD_LENGTH = 6
 
-frame_num = 0
-
-user_num = 0
-node_num = 16
+CSV_FOLDER = Path("CSV")
 
 
 class Node:
+
     def __init__(self, num=0):
         self.__num = num
         self.__power_applied = False
@@ -27,6 +28,81 @@ class Node:
 
     def set_power_applied(self, power):
         self.__power_applied = power
+
+
+class User:
+    
+    def __init__(self, num=0):
+        self.__num = num
+        self.__pin = None
+        self.__node_num = 0
+
+    def get_num(self):
+        return self.__num
+
+    def get_pin(self):
+        return self.__pin
+
+    def set_pin(self, pin):
+        self.__pin = str(pin).zfill(PIN_LENGTH)
+
+    def get_node_num(self):
+        return self.__node_num
+
+    def set_node_num(self, node_num):
+        self.__node_num = node_num
+
+    def pin_ok(self, pin):
+        if self.__pin == None:
+            return False
+        else:
+            return self.__pin == pin
+
+class Users:
+    def __init__(self, path=CSV_FOLDER / "user_test.csv"):
+        self.__users = self.__read_csv(path)
+
+    def get_users(self):
+        return self.__users
+
+    def set_users(self, users):
+        self.__users = users
+
+    def get_user_by_pin(self, pin):
+        for user in self.__users:
+            if user.get_pin() == pin:
+                return user
+        return None
+
+    @staticmethod
+    def __read_csv(path):
+        read_users = list()
+        with open(path) as csv_file:
+            csv_reader = csv.reader(csv_file, delimiter=',')
+            row_count = 0
+            for row in csv_reader:
+                column_count = 0
+                for column in row:
+                    if row_count > 0:
+                        if column_count == 0:
+                            new_user = User(int(column))
+                        elif column_count == 1:
+                            new_user.set_pin(column)
+                        elif column_count == 2:
+                            new_user.set_node_num(int(column))
+                        read_users.append(new_user)
+                    column_count += 1
+                row_count += 1
+        return read_users
+
+
+frame_num = 0
+
+cur_user = None
+cur_pin = -1       
+node_num = -1
+
+users = Users()
 
 
 def switch_to_fullscreen(event):
@@ -53,7 +129,7 @@ def to_thirdscreen(event):
     global frame_num
     frame_num = 3
     frame_2.pack_forget()
-    label_3_0.configure(text="Node #" + str(node_num) + " selected")
+    label_3_0.configure(text="Charger #" + str(node_num) + " selected")
     frame_3.pack(fill="both", expand=True)
     frame_3.focus_set()
 
@@ -104,7 +180,8 @@ color_entry_back = "#B8B8F8"
 font_1 = tkfont.Font(family="Helvetica", size=128)
 font_2 = tkfont.Font(family="Helvetica", size=24)
 font_3 = tkfont.Font(family="Helvetica", size=32)
-font_4 = tkfont.Font(family="Helvetica", size=64)
+font_4 = tkfont.Font(family="Helvetica", size=48)
+font_5 = tkfont.Font(family="Helvetica", size=64)
 
 
 frame_0 = tk.Frame(root, bg=color_back)
@@ -143,14 +220,24 @@ label_1 = tk.Label(frame_1, text="Enter " + str(PIN_LENGTH) + "-digit PIN",
                 bg=color_back)
 label_1.place(relx=0.5, rely=0.3, anchor="c")
 
+
 def get_entry_1(event):
-    global user_num
+    global node_num
+    global cur_pin
+    global cur_user
     if len(name_pin.get()) == PIN_LENGTH:
         try:
-            user_num = int(name_pin.get())
-            to_secondscreen(event)
+            cur_pin = int(name_pin.get())
         except:
             name_pin.set('')
+            return
+        cur_user = users.get_user_by_pin(str(cur_pin).zfill(PIN_LENGTH))
+        if cur_user is None:
+           name_pin.set('')
+           return
+        user_num = cur_user.get_num()
+        node_num = cur_user.get_node_num()
+        to_secondscreen(event)
     else:
         name_pin.set('')
 
@@ -228,11 +315,10 @@ frame_3.bind("<Return>", to_fourthscreen)
 frame_3.focus_set()
 
 label_3_0 = tk.Label(frame_3,
-                     text="Node #" + str(node_num) + " selected",
                      font=font_4,
                      fg=color_front,
                      bg=color_back)
-label_3_0.place(relx=0.45, rely=0.4, anchor='n')
+label_3_0.place(relx=0.5, rely=0.4, anchor='n')
 
 label_3_1 = tk.Label(frame_3, text="Press Enter to confirm and start charging",
                 font=font_2,
@@ -253,7 +339,7 @@ frame_4.bind("<<time_event>>", to_zeroscreen)
 
 label_4_1 = tk.Label(frame_4,
                      text="Charging Started",
-                     font=font_4,
+                     font=font_5,
                      fg=color_front,
                      bg=color_back)
 label_4_1.place(relx=0.5, rely=0.45, anchor='n')

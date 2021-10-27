@@ -1,1 +1,2 @@
-v0_0 -> four screens - 1-Greeting; 2-PIN Entry; 3-Price and Hub#; 4-Charging
+v0_0 -> four screens - 1-Greeting; 2-PIN Entry; 3-Price and Power Hub Number; 4-Charging started message
+v0_1 -> user csv-file; edit/enter charger#; frame to cancel/confirm charger#
